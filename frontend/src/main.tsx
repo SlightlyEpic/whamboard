@@ -30,8 +30,8 @@ const router = createBrowserRouter([
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
     <ReactKeycloakProvider authClient={keycloak}>
-        <React.StrictMode>
-            <RouterProvider router={router} />
-        </React.StrictMode>
+        {/* <React.StrictMode> */}
+        <RouterProvider router={router} />
+        {/* </React.StrictMode> */}
     </ReactKeycloakProvider>
 );

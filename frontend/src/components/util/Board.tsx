@@ -3,20 +3,47 @@ import * as reactKonva from 'react-konva';
 import konva from 'konva';
 import { useContext } from 'react';
 import { WSContext } from '@/lib/wsContext';
+import { useKeycloak } from '@react-keycloak/web';
+import { BoardContext } from '@/lib/boardOptionsContext';
 
 export type BoardProps = {
     width: number;
     height: number;
+    room: string | undefined;
 };
 
+type Line = { points: number[], color: string, strokeWidth: number };
+type BoardObject = {
+    authorId: string
+    data: Line
+}
+
 const BoardCanvas: FC<BoardProps> = (props) => {
+    const { keycloak } = useKeycloak();
     const ws = useContext(WSContext);
     const mouseDown = useRef(false);
     const stageRef = useRef<HTMLDivElement>(null);
+    const lastPoint = useRef<[number, number] | null>(null);
+    const isHost = useRef(false);
+    const boardOptions = useContext(BoardContext);
 
-    type Line = { points: number[], color: string };
     const [lines, setLines] = useState<Line[]>([]);
-    const [currLine, setCurrLine] = useState<Line>();
+
+    const addLine = useCallback((line: Line, emit: boolean) => {
+        setLines(lines => {
+            const newLines = [...lines];
+            newLines.push(line);
+            return newLines;
+        });
+
+        if(emit && ws) {
+            const object: BoardObject = {
+                authorId: ws.id!,
+                data: line
+            };
+            ws.emit('newObject', object);
+        }
+    }, [ws]);
     
     const sendEvent = useCallback(() => {
         if (!ws) return;
@@ -24,58 +51,67 @@ const BoardCanvas: FC<BoardProps> = (props) => {
         ws.emit('ping');
     }, [ws]);
 
-    const startLine = useCallback((e: konva.KonvaEventObject<MouseEvent>) => {
-        // console.log('start line');
-        if(!stageRef.current) return;
-
-        const rect = stageRef.current.getBoundingClientRect();
-        const x = e.evt.x - rect.x;
-        const y = e.evt.y - rect.y;
-        setCurrLine({
-            points: [x, y, x, y],
-            color: 'black'
-        });
-    }, []);
-
     const line = useCallback((e: konva.KonvaEventObject<MouseEvent>) => {
-        if (!ws) return;
-        if (!mouseDown.current) return;
-        if (!stageRef.current) return;
-        // console.log('line');
+        if(!ws || !stageRef.current || !mouseDown.current) return;
 
         const rect = stageRef.current.getBoundingClientRect();
-        const x = e.evt.x - rect.x;
-        const y = e.evt.y - rect.y;
-        setCurrLine(currLine => {
-            if(!currLine) currLine = {
-                points: [x, y],
-                color: 'black'
-            };
-            const newCurrLine = structuredClone(currLine);
-            newCurrLine.points.push(x);
-            newCurrLine.points.push(y);
+        const x2 = e.evt.x - rect.x;
+        const y2 = e.evt.y - rect.y;
+        const x1 = lastPoint.current ? lastPoint.current[0] : x2;
+        const y1 = lastPoint.current ? lastPoint.current[1] : y2;
 
-            return newCurrLine;
-        });
-    }, [ws]);
+        lastPoint.current = [x2, y2];
 
-    const endLine = useCallback(() => {
-        // console.log('ending line', currLine);
-        if(!currLine) return;
-        setLines(lines => {
-            const newLines = [...lines];
-            newLines.push(currLine);
-            // console.log('newLines:', newLines);
-            return newLines;
-        });
-        setCurrLine(undefined);
-    }, [currLine]);
+        addLine({
+            points: [x1, y1, x2, y2],
+            color: boardOptions.brushColor,
+            strokeWidth: boardOptions.brushSize
+        }, true);
+    }, [ws, addLine, boardOptions]);
 
+    const broadcastBoard = useCallback(() => {
+        if(!ws) return;
+        if(isHost.current) {
+            console.log('broadcast requested');
+            ws.emit('boardBroadcast', lines);
+        }
+    }, [ws, lines]);
+
+    // Initialize dom listeners and ws listeners
     useEffect(() => {
         const setMouseDown = () => mouseDown.current = true;
         const unsetMouseDown = () => mouseDown.current = false;
         window.addEventListener('mousedown', setMouseDown);
-        window.addEventListener('mouseup', unsetMouseDown);
+        window.addEventListener('mouseup', () => {
+            unsetMouseDown();
+            lastPoint.current = null;
+        });
+
+        if(ws) {
+            ws.once('verified', () => {
+                console.log('Verified');
+
+                ws.emit('joinRoom', props.room);
+                ws.emit('requestBoardBroadcast');
+            });
+
+            ws.on('newObject', (object: BoardObject) => {
+                if(object.authorId !== ws.id) addLine(object.data, false);
+            });
+
+            ws.on('enableHostMode', () => {
+                isHost.current = true;
+                console.log('enabled host mode');
+            });
+
+
+            ws.on('boardBroadcast', lines => {
+                console.log('board broadcasted', lines);
+                if(!isHost.current) setLines(lines);
+            });
+
+            ws.emit('verify', keycloak.token!);
+        }
 
         return () => {
             window.removeEventListener('mousedown', setMouseDown);
@@ -83,15 +119,22 @@ const BoardCanvas: FC<BoardProps> = (props) => {
         };
     }, []);
 
+    useEffect(() => {
+        if(!ws) return;
+        ws.on('requestBoardBroadcast', broadcastBoard);
+
+        return () => {
+            ws.off('requestBoardBroadcast');
+        };
+    }, [ws, broadcastBoard]);
+
     return (
         <div ref={stageRef}>
             <reactKonva.Stage 
                 width={props.width} 
                 height={props.height} 
                 className='border' 
-                onMouseDown={startLine} 
                 onMouseMove={line} 
-                onMouseUp={endLine}
             >
                 <reactKonva.Layer>
                     <reactKonva.Rect
@@ -103,10 +146,19 @@ const BoardCanvas: FC<BoardProps> = (props) => {
                         shadowBlur={10}
                         onClick={sendEvent}
                     />
-                    {lines.map((line, i) => <reactKonva.Line key={i} points={line.points} stroke={line.color} />)}
-                    {currLine && (
+                    {lines.map((line, i) => (
+                        <reactKonva.Line 
+                            key={i} 
+                            points={line.points} 
+                            stroke={line.color} 
+                            strokeWidth={line.strokeWidth}
+                            lineJoin='round'
+                            lineCap='round'
+                        />
+                    ))}
+                    {/* `{currLine && (
                         <reactKonva.Line points={currLine.points} stroke={currLine.color} />
-                    )}
+                    )}` */}
                 </reactKonva.Layer>
             </reactKonva.Stage>
         </div>
