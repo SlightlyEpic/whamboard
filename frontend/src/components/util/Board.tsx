@@ -57,7 +57,7 @@ const BoardCanvas: FC<BoardProps> = (props) => {
 
             return newCurrLine;
         });
-    }, []);
+    }, [ws]);
 
     const endLine = useCallback(() => {
         // console.log('ending line', currLine);
@@ -81,7 +81,7 @@ const BoardCanvas: FC<BoardProps> = (props) => {
             window.removeEventListener('mousedown', setMouseDown);
             window.removeEventListener('mouseup', unsetMouseDown);
         };
-    });
+    }, []);
 
     return (
         <div ref={stageRef}>
