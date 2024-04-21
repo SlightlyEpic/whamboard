@@ -32,18 +32,20 @@ io.on('connection', socket => {
     socket.once('verify', async (token: string) => {
         try {
             const { sid, name: name_ } = await verifyToken(token);
-            id = sid;
+            id = socket.id;
             name = name_;
-            console.log('Verified', sid, name);
+            console.log('Verified', id, name);
 
             // Attach listeners after identity is verified
             socket.on('joinRoom', (newRoomId: string) => {
+                console.log(`${name} joining ${newRoomId}`);
                 socket.rooms.forEach(room => socket.leave(room));
                 socket.join(newRoomId);
                 roomId = newRoomId;
                 isHost = false;
 
                 let roomCount = io.sockets.adapter.rooms.get(newRoomId)!.size;
+                console.log('roomCount:', roomCount);
                 if(roomCount === 1) {
                     socket.emit('enableHostMode');
                     isHost = true;
@@ -53,7 +55,7 @@ io.on('connection', socket => {
                     hostsRoom[id!] = newRoomId;
                 }
 
-                socket.to(roomId).emit('newUser', name);
+                socket.to(roomId).emit('newUser', name, socket.id);
             });
 
             socket.on('newObject', object => {
@@ -67,7 +69,7 @@ io.on('connection', socket => {
             });
 
             socket.on('requestBoardBroadcast', () => {
-                socket.to(roomHosts[roomId]).emit('requestBoardBroadcast');
+                socket.to(roomId).emit('requestBoardBroadcast');
             });
 
             socket.on('boardBroadcast', board => {

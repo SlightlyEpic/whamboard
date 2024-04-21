@@ -5,7 +5,8 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
-    "start": "pnpm build && node ."
+    "start": "pnpm build && node .",
+    "dev": "nodemon src/index.ts"
   },
   "dependencies": {
     "cors": "^2.8.5",
@@ -19,6 +20,8 @@
   "devDependencies": {
     "@types/express": "^4.17.21",
     "@types/jsonwebtoken": "^9.0.6",
-    "@types/node": "^20.12.7"
+    "@types/node": "^20.12.7",
+    "nodemon": "^3.1.0",
+    "ts-node": "^10.9.2"
   }
 }
