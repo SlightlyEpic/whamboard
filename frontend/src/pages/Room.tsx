@@ -84,11 +84,6 @@ const Room = () => {
                                             <div className='w-100 h-100 rounded-circle' style={{ backgroundColor: '#000', transform: `scale(${size / 15})`}} />
                                         </button>    
                                     ))}
-                                    {/* <button type='button' className='ms-auto btn btn-primary rounded-circle p-0' style={{ backgroundColor: '#000', width: '1rem', aspectRatio: '1' }}></button>
-                                    <button type='button' className='btn btn-primary rounded-circle p-0' style={{ backgroundColor: '#000', width: '1.25rem', aspectRatio: '1' }}></button>
-                                    <button type='button' className='btn btn-primary rounded-circle p-0' style={{ backgroundColor: '#000', width: '1.5rem', aspectRatio: '1' }}></button>
-                                    <button type='button' className='btn btn-primary rounded-circle p-0' style={{ backgroundColor: '#000', width: '1.75rem', aspectRatio: '1' }}></button>
-                                    <button type='button' className='btn btn-primary rounded-circle p-0' style={{ backgroundColor: '#000', width: '2rem', aspectRatio: '1' }}></button> */}
                                 </div>
                             </div>
 

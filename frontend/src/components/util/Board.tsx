@@ -98,7 +98,7 @@ const BoardCanvas: FC<BoardProps> = (props) => {
     const broadcastBoard = useCallback(() => {
         if (!ws) return;
         if (isHost.current) {
-            console.log('broadcast requested');
+            // console.log('broadcast requested');
             ws.emit('boardBroadcast', lines);
         }
     }, [ws, lines]);
@@ -135,7 +135,7 @@ const BoardCanvas: FC<BoardProps> = (props) => {
 
         if (ws) {
             ws.once('verified', () => {
-                console.log('Verified');
+                // console.log('Verified');
 
                 ws.emit('joinRoom', props.room);
                 ws.emit('requestBoardBroadcast');
@@ -147,12 +147,12 @@ const BoardCanvas: FC<BoardProps> = (props) => {
 
             ws.on('enableHostMode', () => {
                 isHost.current = true;
-                console.log('enabled host mode');
+                // console.log('enabled host mode');
             });
 
 
             ws.on('boardBroadcast', lines => {
-                console.log('board broadcasted', lines);
+                // console.log('board broadcasted', lines);
                 if (!isHost.current) setLines(lines);
             });
 
