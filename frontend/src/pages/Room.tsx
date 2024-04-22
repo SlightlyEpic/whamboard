@@ -6,6 +6,7 @@ import { useRef, useState } from 'react';
 import io from 'socket.io-client';
 import { useKeycloak } from '@react-keycloak/web';
 import { BoardContext, BoardOptions } from '@/lib/boardOptionsContext';
+import ChatWindow from '@/components/util/ChatWindow';
 
 type RoomRouteParams = ExtractRouteParams<'/app/:roomId'>;
 
@@ -81,9 +82,7 @@ const Room = () => {
                                 </div>
                             </div>
 
-                            <div className='border border-primary p-2' style={{ width: '24rem' }}>
-                                <div className='col-9'>Chat Window</div>
-                            </div>
+                            <ChatWindow />
                         </div>
                     </main>
 

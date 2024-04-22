@@ -116,15 +116,21 @@ const BoardCanvas: FC<BoardProps> = (props) => {
         return () => {
             window.removeEventListener('mousedown', setMouseDown);
             window.removeEventListener('mouseup', unsetMouseDown);
+
+            if(ws) {
+                ws.removeAllListeners('newObject');
+                ws.removeAllListeners('enableHostMode');
+                ws.removeAllListeners('boardBroadcast');
+            }
         };
-    }, []);
+    }, [ws]);
 
     useEffect(() => {
         if(!ws) return;
         ws.on('requestBoardBroadcast', broadcastBoard);
 
         return () => {
-            ws.off('requestBoardBroadcast');
+            ws.removeAllListeners('requestBoardBroadcast');
         };
     }, [ws, broadcastBoard]);
 
