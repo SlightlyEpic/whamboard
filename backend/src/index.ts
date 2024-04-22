@@ -23,10 +23,10 @@ io.on('connection', socket => {
     let roomId: string;
     let name: string;
     let isHost = false;
-    console.log('New connection');
+    // console.log('New connection');
 
     socket.on('ping', () => {
-        console.log('Ping from', name); 
+        // console.log('Ping from', name); 
     })
 
     socket.once('verify', async (token: string) => {
@@ -34,18 +34,18 @@ io.on('connection', socket => {
             const { sid, name: name_ } = await verifyToken(token);
             id = socket.id;
             name = name_;
-            console.log('Verified', id, name);
+            // console.log('Verified', id, name);
 
             // Attach listeners after identity is verified
             socket.on('joinRoom', (newRoomId: string) => {
-                console.log(`${name} joining ${newRoomId}`);
+                // console.log(`${name} joining ${newRoomId}`);
                 socket.rooms.forEach(room => socket.leave(room));
                 socket.join(newRoomId);
                 roomId = newRoomId;
                 isHost = false;
 
                 let roomCount = io.sockets.adapter.rooms.get(newRoomId)!.size;
-                console.log('roomCount:', roomCount);
+                // console.log('roomCount:', roomCount);
                 if(roomCount === 1) {
                     socket.emit('enableHostMode');
                     isHost = true;
@@ -63,9 +63,9 @@ io.on('connection', socket => {
                 socket.to(roomId).emit('newObject', object);
             });
 
-            socket.on('chatMessage', msg => {
+            socket.on('chatMessage', (msg: string) => {
                 if(!roomId) return;
-                socket.to(roomId).emit('chatMessage', name, msg);
+                socket.to(roomId).emit('chatMessage', msg, name, socket.id);
             });
 
             socket.on('requestBoardBroadcast', () => {
@@ -74,12 +74,16 @@ io.on('connection', socket => {
 
             socket.on('boardBroadcast', board => {
                 socket.to(roomId).emit('boardBroadcast', board);
-            })
+            });
+
+            socket.on('cursorUpdate', (x, y, name) => {
+                socket.to(roomId).emit('cursorUpdate', x, y, name);
+            });
 
             // Emit verification confirmation
             socket.emit('verified');
         } catch(err) {
-            console.log('Rejected:', socket.id, err);
+            // console.log('Rejected:', socket.id, err);
             socket.disconnect();
         }
     });
