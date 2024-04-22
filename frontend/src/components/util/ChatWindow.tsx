@@ -6,13 +6,8 @@ type Message = {
     author: string
 };
 
-const sampleMessages = [
-    { content: 'foo', author: 'bar' },
-    { content: 'hello', author: 'world' }
-];
-
 const ChatWindow: FC = () => {
-    const [messages, setMessages] = useState<Message[]>(sampleMessages);
+    const [messages, setMessages] = useState<Message[]>([]);
     const messageRef = useRef<HTMLInputElement>(null);
     const msgContainerRef = useRef<HTMLDivElement>(null);
     const ws = useContext(WSContext);

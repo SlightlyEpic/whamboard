@@ -2,7 +2,7 @@ import BoardCanvas from '@/components/util/Board';
 import { ExtractRouteParams } from '@/lib/util/typeMagic';
 import { useParams } from 'react-router-dom';
 import { WSContext } from '@/lib/wsContext';
-import { useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import io from 'socket.io-client';
 import { useKeycloak } from '@react-keycloak/web';
 import { BoardContext, BoardOptions } from '@/lib/boardOptionsContext';
@@ -16,13 +16,23 @@ const brushSizes = [5, 7.5, 10, 12.5, 15];
 const Room = () => {
     const params = useParams<keyof RoomRouteParams>();
     const { keycloak } = useKeycloak();
+    const exportImage = useRef<() => void>();
     const ws = useRef(io('ws://localhost:3001/'));
     ws.current.emit('verify', keycloak.token);
+    const [success, setSuccess] = useState(false);
 
     const [boardOptions, setBoardOptions] = useState<BoardOptions>({
         brushColor: 'black',
         brushSize: 5
     });
+
+    const tryCopyInvite = useCallback(async () => {
+        try {
+            await navigator.clipboard.writeText(params.roomId ?? '');
+            setSuccess(true);
+            setTimeout(setSuccess, 1000, false);
+        } catch(err) {}     // eslint-disable-line
+    }, [params.roomId]);
 
     return (
         <WSContext.Provider value={ws.current}>
@@ -41,7 +51,7 @@ const Room = () => {
                     <main className='flex-grow-1'>
                         <div className='d-flex h-100'>
                             <div className='fixme d-flex flex-column gap-2 flex-grow-1 col-auto align-items-center justify-content-center'>
-                                <BoardCanvas width={800} height={600} room={params.roomId} />
+                                <BoardCanvas exportImage={exportImage} width={800} height={600} room={params.roomId} />
 
                                 <div className='d-flex justify-content-center align-items-center gap-2' style={{ width: '800px' }}>
                                     {brushColors.map(color => (
@@ -86,8 +96,10 @@ const Room = () => {
                         </div>
                     </main>
 
-                    <footer className='p-1 bg-light'>
-                        <button className='btn'>Export</button>
+                    <footer className='d-flex gap-2 p-1 bg-light'>
+                        <button className='btn btn-primary' onClick={() => exportImage.current && exportImage.current()}>Export canvas</button>
+                        <button className='btn btn-primary' onClick={tryCopyInvite}>Copy room invite</button>
+                        <div className='btn bg-success text-white' style={{ opacity: success ? 1 : 0, transition: 'all 200ms' }}>Success</div>
                     </footer>
                 </div>
             </BoardContext.Provider>
